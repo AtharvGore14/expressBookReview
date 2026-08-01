@@ -3,6 +3,9 @@ let books = require("./booksdb.js");
 let isValid = require("./auth_users.js").isValid;
 let users = require("./auth_users.js").users;
 const public_users = express.Router();
+const axios = require('axios');
+
+const BASE_URL = "http://localhost:5000";
 
 const doesExist = (username)=>{
   let userswithsamename = users.filter((user)=>{
@@ -15,12 +18,9 @@ const doesExist = (username)=>{
   }
 }
 
-
 public_users.post("/register", (req,res) => {
-  //Write your code here
   const username = req.body.username;
   const password = req.body.password;
-
 
   if (username && password) {
     if (!doesExist(username)) { 
@@ -33,23 +33,19 @@ public_users.post("/register", (req,res) => {
   return res.status(404).json({message: "Unable to register user."});
 });
 
-// Get the book list available in the shop
+// Task 1: Get the book list available in the shop
 public_users.get('/',function (req, res) {
-  //Write your code here
   res.send(JSON.stringify(books,null,4));
 });
 
-// Get book details based on ISBN
+// Task 2: Get book details based on ISBN
 public_users.get('/isbn/:isbn',function (req, res) {
-  //Write your code here
   const ISBN = req.params.isbn;
+  res.send(books[ISBN]);
+});
   
-  res.send(books[ISBN])
- });
-  
-// Get book details based on author
+// Task 3: Get book details based on author
 public_users.get('/author/:author',function (req, res) {
-  //Write your code here
   let ans = []
     for(const [key, values] of Object.entries(books)){
         const book = Object.entries(values);
@@ -65,9 +61,8 @@ public_users.get('/author/:author',function (req, res) {
     res.send(ans);
 });
 
-// Get all books based on title
+// Task 4: Get all books based on title
 public_users.get('/title/:title',function (req, res) {
-  //Write your code here
   let ans = []
   for(const [key, values] of Object.entries(books)){
       const book = Object.entries(values);
@@ -83,103 +78,55 @@ public_users.get('/title/:title',function (req, res) {
   res.send(ans);
 });
 
-//  Get book review
+// Task 5: Get book review
 public_users.get('/review/:isbn',function (req, res) {
-  //Write your code here
   const ISBN = req.params.isbn;
-  res.send(books[ISBN].reviews)
+  res.send(books[ISBN].reviews);
 });
 
-// Task 10 
-// Add the code for getting the list of books available in the shop (done in Task 1) using Promise callbacks or async-await with Axios
-
-function getBookList(){
-  return new Promise((resolve,reject)=>{
-    resolve(books);
-  })
-}
-
-// Get the book list available in the shop
-public_users.get('/',function (req, res) {
-  getBookList().then(
-    (bk)=>res.send(JSON.stringify(bk, null, 4)),
-    (error) => res.send("denied")
-  );  
+// Task 10: Get all books using Axios with async/await
+public_users.get('/async/books', async (req, res) => {
+  try {
+    const response = await axios.get(`${BASE_URL}/`);
+    res.send(JSON.stringify(response.data, null, 4));
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching books", error: error.message });
+  }
 });
 
-// Task 11
-// Add the code for getting the book details based on ISBN (done in Task 2) using Promise callbacks or async-await with Axios.
+// Task 11: Get book by ISBN using Axios with async/await
+public_users.get('/async/isbn/:isbn', async (req, res) => {
+  try {
+    const isbn = req.params.isbn;
+    const response = await axios.get(`${BASE_URL}/isbn/${isbn}`);
+    res.send(JSON.stringify(response.data, null, 4));
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching book by ISBN", error: error.message });
+  }
+});
 
-function getFromISBN(isbn){
-  let book_ = books[isbn];  
-  return new Promise((resolve,reject)=>{
-    if (book_) {
-      resolve(book_);
-    }else{
-      reject("Unable to find book!");
-    }    
-  })
-}
-
-// Get book details based on ISBN
-public_users.get('/isbn/:isbn',function (req, res) {
-  const isbn = req.params.isbn;
-  getFromISBN(isbn).then(
-    (bk)=>res.send(JSON.stringify(bk, null, 4)),
-    (error) => res.send(error)
-  )
- });
-
-// Task 12
-// Add the code for getting the book details based on Author (done in Task 3) using Promise callbacks or async-await with Axios.
-
-function getFromAuthor(author){
-  let output = [];
-  return new Promise((resolve,reject)=>{
-    for (var isbn in books) {
-      let book_ = books[isbn];
-      if (book_.author === author){
-        output.push(book_);
-      }
-    }
-    resolve(output);  
-  })
-}
-
-// Get book details based on author
-public_users.get('/author/:author',function (req, res) {
+// Task 12: Get books by author using Axios with Promise callbacks
+public_users.get('/async/author/:author', (req, res) => {
   const author = req.params.author;
-  getFromAuthor(author)
-  .then(
-    result =>res.send(JSON.stringify(result, null, 4))
-  );
+  axios.get(`${BASE_URL}/author/${encodeURIComponent(author)}`)
+    .then((response) => {
+      res.send(JSON.stringify(response.data, null, 4));
+    })
+    .catch((error) => {
+      res.status(500).json({ message: "Error fetching books by author", error: error.message });
+    });
 });
 
-// Task 13
-// Add the code for getting the book details based on Title (done in Task 4) using Promise callbacks or async-await with Axios.
-
-
-function getFromTitle(title){
-  let output = [];
-  return new Promise((resolve,reject)=>{
-    for (var isbn in books) {
-      let book_ = books[isbn];
-      if (book_.title === title){
-        output.push(book_);
-      }
-    }
-    resolve(output);  
-  })
-}
-
-// Get all books based on title
-public_users.get('/title/:title',function (req, res) {
+// Task 13: Get books by title using Axios with Promise callbacks
+public_users.get('/async/title/:title', (req, res) => {
   const title = req.params.title;
-  getFromTitle(title)
-  .then(
-    result =>res.send(JSON.stringify(result, null, 4))
-  );
+  axios.get(`${BASE_URL}/title/${encodeURIComponent(title)}`)
+    .then((response) => {
+      res.send(JSON.stringify(response.data, null, 4));
+    })
+    .catch((error) => {
+      res.status(500).json({ message: "Error fetching books by title", error: error.message });
+    });
 });
-
 
 module.exports.general = public_users;
