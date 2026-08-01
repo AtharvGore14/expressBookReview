@@ -1,0 +1,6 @@
+﻿curl -X PUT "http://localhost:5000/customer/auth/review/1" -H "Content-Type: application/json" -d "{\"review\":\"A masterpiece of African literature!\"}" -b cookies.txt
+Review successfully posted
+
+Get review after posting:
+curl http://localhost:5000/review/1
+{"john2":"A masterpiece of African literature!"}
